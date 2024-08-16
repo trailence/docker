@@ -1,0 +1,19 @@
+FROM node:20-alpine AS build-app
+WORKDIR /build
+ARG TRAILENCE_VERSION
+RUN apk add --no-cache git
+RUN npm install -g @ionic/cli @angular/cli cpy-cli
+RUN git clone --depth 1 --branch "$TRAILENCE_VERSION" https://github.com/trailence/trailence-front.git
+RUN cd trailence-front && npm install
+#RUN cd trailence-front && ionic capacitor sync android --configuration=android-prod && cd android/environments/prod && cpy . ../..
+RUN cd trailence-front && ionic build --configuration=production
+
+#FROM mobiledevops/android-sdk-image:34.0.1 AS build-apk
+#WORKDIR /build-apk
+#COPY --from=0 /build/trailence-front /build-apk
+#RUN cd android && ./gradlew assembleRelease
+
+FROM nginx:stable-alpine AS build-image
+COPY --from=build-app /build/trailence-front/www /usr/share/nginx/html
+#COPY --from=1 /build-apk/app/build/outputs/apk/release /usr/share/nginx/html/downloads/trailence-android.apk
+COPY ./nginx.conf /etc/nginx/templates/default.conf.template

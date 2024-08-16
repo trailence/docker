@@ -1,0 +1,11 @@
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /build
+ARG TRAILENCE_VERSION
+RUN git clone --depth 1 --branch "$TRAILENCE_VERSION" https://github.com/trailence/trailence-back.git
+RUN cd /build/trailence-back && mvn --batch-mode package
+RUN ls /build/trailence-back/target
+
+FROM eclipse-temurin:21 AS build-image
+WORKDIR /app
+COPY --from=build /build/trailence-back/target/trailence-*-spring-boot.jar /app/trailence.jar
+ENTRYPOINT ["java","-jar","/app/trailence.jar"]

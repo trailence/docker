@@ -1,0 +1,17 @@
+version: '3'
+
+name: trailence-init-cert
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      tags:
+        - nginx:init-cert
+    ports:
+      - 80:80
+    environment:
+      - TRAILENCE_HOSTNAME=${TRAILENCE_HOSTNAME}
+    volumes:
+      - ../certbotwww:/var/www/certbot/:ro

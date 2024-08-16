@@ -1,0 +1,54 @@
+version: '3'
+
+name: trailence
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=trailence
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
+  back:
+    depends_on:
+      db:
+        condition: service_healthy
+    image: trailence/back:${TRAILENCE_VERSION}
+    environment:
+      - POSTGRESQL_HOST=db
+      - POSTGRESQL_PORT=5432
+      - POSTGRESQL_USERNAME=${DB_USERNAME}
+      - POSTGRESQL_PASSWORD=${DB_PASSWORD}
+      - POSTGRESQL_DB=trailence
+      - TRAILENCE_JWT_SECRET=${JWT_SECRET}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_AUTH_ENABLED=${SMTP_AUTH_ENABLED}
+      - SMTP_TLS_ENABLED=${SMTP_TLS_ENABLED}
+      - TRAILENCE_INIT_USER=${TRAILENCE_INIT_USER}
+      - TRAILENCE_INIT_PASSWORD=${TRAILENCE_INIT_PASSWORD}
+      - GEONAMES_USER=${GEONAMES_USER}
+  web:
+    depends_on:
+      - back
+      - certbot
+    image: trailence/front:${TRAILENCE_VERSION}
+    ports:
+      - 80:80
+      - 443:443
+    environment:
+      - TRAILENCE_BACK_NAME=back
+      - TRAILENCE_BACK_PORT=8080
+      - TRAILENCE_HOSTNAME=${TRAILENCE_HOSTNAME}
+    #restart: always
+    volumes:
+      - ./certbotwww:/var/www/certbot/:ro
+      - /etc/letsencrypt/:/etc/nginx/ssl/:ro
