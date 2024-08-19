@@ -9,6 +9,10 @@ services:
       - POSTGRES_USER=${DB_USERNAME}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
       - POSTGRES_DB=trailence
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - ./db_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready", "-d", "db_prod"]
       interval: 30s
@@ -36,10 +40,11 @@ services:
       - TRAILENCE_INIT_USER=${TRAILENCE_INIT_USER}
       - TRAILENCE_INIT_PASSWORD=${TRAILENCE_INIT_PASSWORD}
       - GEONAMES_USER=${GEONAMES_USER}
+      - CAPTCHA_CLIENT_KEY=${CAPTCHA_CLIENT_KEY}
+      - CAPTCHA_SECRET_KEY=${CAPTCHA_SECRET_KEY}
   web:
     depends_on:
       - back
-      - certbot
     image: trailence/front:${TRAILENCE_VERSION}
     ports:
       - 80:80
@@ -48,7 +53,7 @@ services:
       - TRAILENCE_BACK_NAME=back
       - TRAILENCE_BACK_PORT=8080
       - TRAILENCE_HOSTNAME=${TRAILENCE_HOSTNAME}
-    #restart: always
+    restart: always
     volumes:
       - ./certbotwww:/var/www/certbot/:ro
       - /etc/letsencrypt/:/etc/nginx/ssl/:ro

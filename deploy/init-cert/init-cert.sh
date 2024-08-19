@@ -1,2 +1,2 @@
 #!/bin/bash
-certbot certonly --webroot -w ../certbot/www -d $1
+certbot certonly --webroot -w ../certbotwww -d $1
