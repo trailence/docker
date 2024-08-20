@@ -23,7 +23,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    image: trailence/back:${TRAILENCE_VERSION}
+    image: trailence/back:${TRAILENCE_BACK_VERSION}
     environment:
       - POSTGRESQL_HOST=db
       - POSTGRESQL_PORT=5432
@@ -45,7 +45,7 @@ services:
   web:
     depends_on:
       - back
-    image: trailence/front:${TRAILENCE_VERSION}
+    image: trailence/front:${TRAILENCE_FRONT_VERSION}
     ports:
       - 80:80
       - 443:443

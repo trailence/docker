@@ -4,16 +4,18 @@ ARG TRAILENCE_VERSION
 RUN apk add --no-cache git
 RUN npm install -g @ionic/cli @angular/cli cpy-cli rimraf
 RUN git clone --depth 1 --branch "$TRAILENCE_VERSION" https://github.com/trailence/trailence-front.git
-RUN cd trailence-front && npm install
-RUN cd trailence-front && ionic capacitor sync android --configuration=android-prod && rimraf android/app/src/main/assets/public/assets/apk && cd android/environments/prod && cpy . ../..
-RUN cd trailence-front && ionic build --configuration=production
+WORKDIR /build/trailence-front
+RUN npm install
+RUN ionic capacitor sync android --configuration=android-prod && rimraf android/app/src/main/assets/public/assets/apk && cd android/environments/prod && cpy . ../..
+RUN ionic build --configuration=production
 
 FROM mobiledevops/android-sdk-image:34.0.1 AS build-apk
 WORKDIR /build-apk
 COPY --from=build-app /build/trailence-front /build-apk
 COPY ./trailence.jks /build-apk/android
 COPY ./keys.gradle /build-apk/android
-RUN cd android && chmod 777 ./gradlew && ./gradlew assembleRelease
+WORKDIR /build-apk/android
+RUN chmod 777 ./gradlew && ./gradlew assembleRelease
 
 FROM nginx:stable-alpine AS build-image
 COPY --from=build-app /build/trailence-front/www /usr/share/nginx/html
