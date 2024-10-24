@@ -1,24 +1,30 @@
 FROM node:20-alpine AS build-app
 WORKDIR /build
+RUN npm install -g @ionic/cli @angular/cli cpy-cli rimraf && apk --no-cache add git
 ARG TRAILENCE_VERSION
-RUN apk add --no-cache git
-RUN npm install -g @ionic/cli @angular/cli cpy-cli rimraf
 RUN git clone --depth 1 --branch "$TRAILENCE_VERSION" https://github.com/trailence/trailence-front.git
 WORKDIR /build/trailence-front
-RUN npm install
-RUN ionic capacitor sync android --configuration=android-prod && rimraf android/app/src/main/assets/public/assets/apk && cd android/environments/prod && cpy . ../..
-RUN ionic build --configuration=production
+RUN npm install && \
+    ionic capacitor sync android --configuration=android-prod && \
+    rimraf android/app/src/main/assets/public/assets/apk && \
+    cd android/environments/prod && \
+    cpy . ../.. && \
+    cd ../../.. && \
+    ionic build --configuration=production
 
 FROM mobiledevops/android-sdk-image:34.0.1 AS build-apk
 WORKDIR /build-apk
-COPY --from=build-app /build/trailence-front /build-apk
-COPY ./trailence.jks /build-apk/android
-COPY ./keys.gradle /build-apk/android
-WORKDIR /build-apk/android
+ARG TRAILENCE_VERSION
+RUN git clone --depth 1 --branch "$TRAILENCE_VERSION" https://github.com/trailence/trailence-front.git
+WORKDIR /build-apk/trailence-front/android
+RUN chmod 777 ./gradlew && ./gradlew clean || true
+COPY --from=build-app /build/trailence-front /build-apk/trailence-front
+COPY ./trailence.jks /build-apk/trailence-front/android
+COPY ./keys.gradle /build-apk/trailence-front/android
 RUN chmod 777 ./gradlew && ./gradlew assembleRelease
 
 FROM nginx:stable-alpine AS build-image
 COPY ./nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=build-app /build/trailence-front/www /usr/share/nginx/html
-COPY --from=build-apk /build-apk/android/app/build/outputs/apk/release/app-release.apk /usr/share/nginx/html/assets/apk/trailence.apk
-COPY --from=build-apk /build-apk/android/app/build/outputs/apk/release/output-metadata.json /usr/share/nginx/html/assets/apk/metadata.json
+COPY --from=build-apk /build-apk/trailence-front/android/app/build/outputs/apk/release/app-release.apk /usr/share/nginx/html/assets/apk/trailence.apk
+COPY --from=build-apk /build-apk/trailence-front/android/app/build/outputs/apk/release/output-metadata.json /usr/share/nginx/html/assets/apk/metadata.json
